@@ -38,9 +38,11 @@ func TestHandleResponse(t *testing.T) {
 	}
 
 	var rule = Rule{
-		id:            0,
-		Topics:        []string{"topic"},
-		Clusters:      []string{"cluster"},
+		id:     0,
+		Topics: []string{"topic"},
+		Clusters: []Cluster{Cluster{
+			Id: "cluster",
+		}},
 		Metrics:       []string{"metric", "metric2"},
 		GroupByLabels: []string{"topic", "kafka_id"},
 	}

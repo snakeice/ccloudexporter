@@ -10,17 +10,21 @@ package collector
 import "testing"
 
 var rule1 = Rule{
-	id:            0,
-	Topics:        []string{"myTopic"},
-	Clusters:      []string{"cluster"},
+	id:     0,
+	Topics: []string{"myTopic"},
+	Clusters: []Cluster{Cluster{
+		Id: "cluster",
+	}},
 	Metrics:       []string{"metric", "metric2"},
 	GroupByLabels: []string{"topic", "partition"},
 }
 
 var rule2 = Rule{
-	id:            1,
-	Topics:        []string{},
-	Clusters:      []string{"cluster"},
+	id:     1,
+	Topics: []string{},
+	Clusters: []Cluster{Cluster{
+		Id: "cluster",
+	}},
 	Metrics:       []string{"metric", "metric3"},
 	GroupByLabels: []string{"topic"},
 }

@@ -38,6 +38,8 @@ func (cc KafkaCCloudCollector) Describe(ch chan<- *prometheus.Desc) {
 // to avoid reaching the scrape_timeout, metrics are fetched in multiple goroutine
 func (cc KafkaCCloudCollector) Collect(ch chan<- prometheus.Metric, wg *sync.WaitGroup) {
 	for _, rule := range cc.rules {
+		wg.Add(1)
+		go cc.handleCkuMetric(wg, ch, rule)
 		for _, metric := range rule.Metrics {
 			_, present := cc.metrics[metric]
 			if !present {
@@ -51,6 +53,22 @@ func (cc KafkaCCloudCollector) Collect(ch chan<- prometheus.Metric, wg *sync.Wai
 			wg.Add(1)
 			go cc.CollectMetricsForRule(wg, ch, rule, cc.metrics[metric])
 		}
+	}
+}
+
+// handleCkuMetric collects CKU metrics for a specific rule
+func (cc KafkaCCloudCollector) handleCkuMetric(wg *sync.WaitGroup, ch chan<- prometheus.Metric, rule Rule) {
+	defer wg.Done()
+	desc := prometheus.NewDesc(
+		"ccloud_metrics_cluster_cku",
+		"Number of CKUs in the cluster",
+		[]string{"cluster_id", "cluster_name"},
+		nil,
+	)
+
+	for _, cluster := range rule.Clusters {
+		metric := prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, float64(cluster.Cku), cluster.Id, cluster.Name)
+		ch <- metric
 	}
 }
 
@@ -105,10 +123,19 @@ func (cc KafkaCCloudCollector) handleResponse(response QueryResponse, ccmetric C
 			if label == "cluster_id" {
 				label = "kafka_id"
 			}
+
+			if label == "cluster_name" {
+				clusterData := rule.ClusterById(cluster)
+				if clusterData != nil {
+					labels = append(labels, clusterData.Name)
+					continue
+				}
+			}
+
 			name := cc.resource.datapointFieldNameForLabel(label)
 			labelValue, labelValuePresent := dataPoint[name].(string)
 			if !labelValuePresent {
-				labelValue, labelValuePresent = additionalLabels[name]
+				labelValue = additionalLabels[name]
 			}
 			labels = append(labels, labelValue)
 		}
@@ -164,6 +191,8 @@ func NewKafkaCCloudCollector(ccloudcollecter CCloudCollector, resource ResourceD
 		for _, metrLabel := range metr.Labels {
 			labels = append(labels, metrLabel.Key)
 		}
+
+		labels = append(labels, "cluster_name")
 
 		desc := prometheus.NewDesc(
 			"ccloud_metric_"+GetNiceNameForMetric(metr),

@@ -1,3 +1,4 @@
 ccloud/
 ./ccloudexporter
 cmd/ccloudexporter/ccloudexporter
+.vscode/launch.json

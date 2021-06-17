@@ -25,15 +25,21 @@ type ExporterContext struct {
 // Rule defines one or multiple metrics that the exporter
 // should collect for a specific set of topics or clusters
 type Rule struct {
-	Topics                           []string `mapstructure:"topics"`
-	Clusters                         []string `mapstructure:"clusters"`
-	Connectors                       []string `mapstructure:"connectors"`
-	Ksql                             []string `mapstructure:"ksqls"`
-	SchemaRegistries                 []string `mapstructure:"schemaregistries"`
-	Metrics                          []string `mapstructure:"metrics"`
-	GroupByLabels                    []string `mapstructure:"labels"`
+	Topics                           []string  `mapstructure:"topics"`
+	Clusters                         []Cluster `mapstructure:"clusters" yaml:"clusters"`
+	Connectors                       []string  `mapstructure:"connectors"`
+	Ksql                             []string  `mapstructure:"ksqls"`
+	SchemaRegistries                 []string  `mapstructure:"schemaregistries"`
+	Metrics                          []string  `mapstructure:"metrics"`
+	GroupByLabels                    []string  `mapstructure:"labels"`
 	cachedIgnoreGlobalResultForTopic map[TopicClusterMetric]bool
 	id                               int
+}
+
+type Cluster struct {
+	Id   string `mapstructure:"id"`
+	Name string `mapstructure:"name"`
+	Cku  int    `mapstructure:"cku"`
 }
 
 // TopicClusterMetric represents a combination of a topic, a cluster and a metric
@@ -170,7 +176,7 @@ func (rule Rule) ShouldIgnoreResultForRule(topic string, cluster string, metric 
 		if irule.id == rule.id {
 			continue
 		}
-		if contains(irule.Metrics, metric) && contains(irule.Clusters, cluster) {
+		if contains(irule.Metrics, metric) && containsCluster(irule.Clusters, cluster) {
 			if len(rule.Topics) == 0 && len(irule.Topics) > 0 && contains(irule.Topics, topic) {
 				rule.cachedIgnoreGlobalResultForTopic[TopicClusterMetric{topic, cluster, metric}] = true
 				return true
@@ -179,5 +185,23 @@ func (rule Rule) ShouldIgnoreResultForRule(topic string, cluster string, metric 
 
 	}
 	rule.cachedIgnoreGlobalResultForTopic[TopicClusterMetric{topic, cluster, metric}] = false
+	return false
+}
+
+func (rule Rule) ClusterById(id string) *Cluster {
+	for _, cluster := range rule.Clusters {
+		if id == cluster.Id {
+			return &cluster
+		}
+	}
+	return nil
+}
+
+func containsCluster(s []Cluster, e string) bool {
+	for _, a := range s {
+		if a.Id == e {
+			return true
+		}
+	}
 	return false
 }

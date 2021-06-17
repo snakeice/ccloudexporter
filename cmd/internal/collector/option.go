@@ -160,7 +160,14 @@ func parseConfigFile(configPath string) {
 	}
 }
 
-func createDefaultRule(clusters []string, connectors []string, ksqlDBApplications []string, schemaRegistries []string) {
+func createDefaultRule(clusterIds []string, connectors []string, ksqlDBApplications []string, schemaRegistries []string) {
+	var clusters []Cluster
+	for _, clusterId := range clusterIds {
+		clusters = append(clusters, Cluster{
+			Id: clusterId,
+		})
+	}
+
 	Context.Rules = make([]Rule, 1)
 	Context.Rules[0] = Rule{
 		id:               0,
